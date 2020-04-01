@@ -1,5 +1,5 @@
 # Demo Application for Civicam REST API
-This application demonstrates how to use the Civicam REST API to upload, edit and remove videos.
+This application demonstrates how to use the [Civicam REST API](https://api.civicam.it/test/v1) to upload, edit and remove videos.
 
 ![screenshot.png](screenshot.png)
 
