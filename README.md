@@ -20,3 +20,7 @@ npm run serve
   * Optionally, [let the user approve the estimate](./js/App.js#L122) and then [make a request the REST API](./js/App.js#L128) in order to get the AWS S3 bucket and object key informations you should upload the file to;
   * [Use the Evaporate.js](./js/services/Uploader.js#L28) library to upload the video file in chunks. It can [report progress](./js/services/Uploader.js#L44). Make it [send out a request to the REST API](./js/services/Uploader.js#L98) so it can let it sign the canonical request to AWS;
   * When the upload completes, the client application has completed its job. The video will be transcoded remotely and it will be made available for playback as soon as it finishes. The [source property](./js/models/Video.js#L34) of the video response will be non null when the video is ready to be played.
+* Use the [Civicam WebTvPlayer SDK or iframe](https://api.civicam.it/v1/embed/) to embed and play the video. The [iframe is used](index.html#L116) in this sample.
+
+## Please note
+Administrative API Keys are NOT meant to be used in a publicly available client application. It should be used only for backoffice applications, by trusted users.
