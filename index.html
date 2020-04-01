@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        .modal, .modal-dialog, .modal-content, .modal-header, .modal-title, .modal-body, .modal-footer {
+            pointer-events: none;
+        }
+        .modal.show, .show .modal-dialog, .show .modal-content, .show .modal-header, .show .modal-title, .show .modal-body, .show .modal-footer {
+            pointer-events: all;
+        }
+        .modal.show {
+            
+            display: block;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        .footnote {
+            font-size: 0.7em;
+            color: #888";
+        }
+        #app {
+            display: none;
+        }
+        #app.shown {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app" v-bind:class="{ shown: true }">
+    <h1>REST API Civicam Demo</h1>
+
+    <h2 class="mt-5">Video list</h2>
+    <div class="text-center" v-if="!videos"><i class="fa fa-spinner fa-spin" style="font-size: 6em;"></i></div>
+    <table class="table" v-if="videos">
+        <thead>
+            <tr>
+                <th scope="col">Id</th>
+                <th scope="col" style="width: 100%">Title</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="text-right">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="4" v-if="videos.length == 0"><div class="alert alert-warning">There are no videos right now but you can upload one by clicking the button below.</div></td>
+            </tr>
+        </tbody>
+        <tbody v-if="videos.length > 0">
+            <tr v-for="video in videos">
+                <td class="align-middle">{{video.id}}</td>
+                <td class="align-middle">{{video.title}}</td>
+                <td class="align-middle" style="white-space: nowrap;"><span v-if="video.ready" title="This video is ready for playback" style="color: green"><i class="fa fa-circle"></i> Ready</span><span v-if="!video.ready" title="This video is still transcoding, check back in a while" style="color: #800000"><i class="fa fa-circle"></i> Not ready</span></td>
+                <td class="text-right align-middle" style="white-space: nowrap;">
+                    <button type="button" class="btn btn-outline-primary" v-if="video.ready" v-on:click="playVideo(video)"><i class="fa fa-play"></i> Play</button>
+                    <button type="button" class="btn btn-outline-primary" v-on:click="editVideo(video)"><i class="fa fa-pencil"></i></button>
+                    <button type="button" class="btn btn-outline-danger" v-on:click="deleteVideo(video)"><i class="fa fa-trash"></i></button>
+                </td>
+            </tr>
+        </tbody>
+        <tbody v-if="upload && upload.percentage !== null">
+            <tr>
+                <td class="align-middle"><i class="fa fa-spinner fa-spin"></i></td>
+                <td class="align-middle" style="line-height: 1em">Uploading {{upload.filename}}<br><span class="footnote" v-if="upload.videoInformations">Duration: {{upload.videoInformations.duration}}s, resolution: {{upload.videoInformations.width}}x{{upload.videoInformations.height}}@{{upload.videoInformations.fps}}fps</span> <span class="footnote" v-if="upload.estimate">, cost: {{upload.estimate.amount}} {{upload.estimate.currency}}</span></td>
+                <td class="align-middle"><progress min="0" max="100" v-bind:value="upload.percentage"></progress><br><span class="footnote" v-if="upload.percentage !== null">Completed: {{upload.percentage}}%, remaining: {{upload.remaining}}, {{upload.speed}}Mbps.</span></td>
+                <td><button type="button" v-on:click="cancelUpload" class="btn btn-outline-danger btn-block"><i class="fa fas fa-times"></i> Annulla</button></td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="align-middle"><i class="fa fas fa-info-circle"></i> See the <a href="https://docs.aws.amazon.com/mediaconvert/latest/ug/reference-codecs-containers-input.html" target="_blank">AWS documentation</a> for supported video formats.</td>
+                <td class="align-middle"><button type="button" class="btn btn-primary btn-block" onclick="this.nextElementSibling.value = ''; this.nextElementSibling.click()" v-bind:disabled="upload">
+                    <i class="fa fa-upload"></i> Upload video
+                </button><input type="file" id="video-upload" accept="video/*" v-on:change="uploadVideo"  style="position: absolute; top: -10000px"></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Confirmation modal -->
+    <div class="modal fade" v-bind:class="{show: confirmationModal.shown}" style="display: block;" tabindex="-1" role="dialog" aria-labelledby="confirmationModalLabel" aria-hidden="false">
+        <div class="modal-dialog" role="document" style="min-width: 640px;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="confirmationModalLabel">Confirmation</h5>
+              <button type="button" class="close" aria-label="Close" v-on:click="cancelConfirmationModal">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">{{confirmationModal.message}}</div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" v-on:click="cancelConfirmationModal">Cancel</button>
+              <button type="button" class="btn btn-primary" v-on:click="confirmConfirmationModal"><i class="fa fas fa-check"></i> Confirm</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Player modal -->
+    <div class="modal fade" v-bind:class="{show: playerModal.shown}" style="display: block;" tabindex="-1" role="dialog" aria-labelledby="playerModalLabel" aria-hidden="false">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="playerModalLabel">Video preview</h5>
+              <button type="button" class="close" aria-label="Close" v-on:click="cancelPlayerModal">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body"><div id="video-player-container" v-if="playerModal.src" style="width: 100%; padding-top:56.25%; position: relative;">
+                <iframe v-bind:src="playerModal.src" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0"></iframe>
+            </div></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" v-on:click="cancelPlayerModal">Close</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Edit modal -->
+    <div class="modal fade" v-bind:class="{show: editModal.shown}" style="display: block;" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="false">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editModalLabel">Edit title</h5>
+              <button type="button" class="close" aria-label="Close" v-on:click="cancelEditModal">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body" v-if="editModal.video"><label for="title">Change the title</label><br>
+                <input type="text" id="title" class="form-control" v-model="editModal.title" required>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" v-on:click="cancelEditModal">Close</button>
+              <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="saveEditModal">Save</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    </div>
+    <script type="module">
+        //Config
+        const apiKey = ''; //Api Key here
+        const baseUrl = 'https://api.civicam.it/test/v1/'; //Remove /test when you want to use the production environment. A new Api Key will be needed-
+
+        //Initialization
+        import Bootstrapper from './js/bootstrapper.js';
+        const app = Bootstrapper.initializeApp(apiKey, baseUrl, document.getElementById('app'), document.getElementById('video-player-container'));
+    </script>
+</body>
+</html>

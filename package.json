@@ -1,0 +1,14 @@
+{
+  "name": "civicam-restapi-demo",
+  "version": "1.0.0",
+  "description": "Sample application for Civicam REST API",
+  "main": "index.js",
+  "scripts": {
+    "serve": "serve -l 3000 -n"
+  },
+  "author": "Halleymedia snc",
+  "license": "ISC",
+  "devDependencies": {
+    "serve": "^11.3.0"
+  }
+}
